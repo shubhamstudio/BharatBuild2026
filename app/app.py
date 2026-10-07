@@ -89,15 +89,25 @@ def get_db():
     # Gunicorn forks workers. A pool must be created in the worker that owns it,
     # not inherited from a parent process with already-open sockets.
     if _db_pool is None or _db_pool_pid != os.getpid():
-        _db_pool = ThreadedConnectionPool(
-            minconn=1,
-            maxconn=4,
-            host=config.get("database", "host"),
-            port=config.get("database", "port"),
-            dbname=config.get("database", "name"),
-            user=config.get("database", "user"),
-            password=config.get("database", "password"),
-        )
+        database_url = os.environ.get("DATABASE_URL")
+        if database_url:
+            # Managed databases used by serverless hosts provide a TLS-enabled
+            # connection URL. Keep Docker's app.ini configuration as the local fallback.
+            _db_pool = ThreadedConnectionPool(
+                minconn=1,
+                maxconn=4,
+                dsn=database_url,
+            )
+        else:
+            _db_pool = ThreadedConnectionPool(
+                minconn=1,
+                maxconn=4,
+                host=config.get("database", "host"),
+                port=config.get("database", "port"),
+                dbname=config.get("database", "name"),
+                user=config.get("database", "user"),
+                password=config.get("database", "password"),
+            )
         _db_pool_pid = os.getpid()
     return PooledConnection(_db_pool, _db_pool.getconn())
 
