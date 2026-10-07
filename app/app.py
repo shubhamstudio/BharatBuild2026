@@ -40,7 +40,11 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 300
 ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "pension-admin")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 
-SMS_GATEWAY_URL = config.get("app", "sms_gateway_url")
+# Docker uses the internal `smsgw` hostname; hosted environments supply the
+# public test-gateway base URL through their runtime configuration.
+SMS_GATEWAY_URL = os.environ.get(
+    "SMS_GATEWAY_URL", config.get("app", "sms_gateway_url")
+).rstrip("/")
 OTP_VALIDITY_SECONDS = config.getint("app", "otp_validity_seconds")
 UPLOAD_DIR = config.get("app", "upload_dir")
 SCHEME_DEADLINE = datetime.strptime(config.get("pension", "scheme_deadline"),
