@@ -439,6 +439,10 @@ def handle_submission():
     session.pop("form_data", None)
     session.pop("doc_path", None)
     session.pop("verified_mobile", None)
+    # The applicant has just completed OTP verification for this mobile number.
+    # Keep a scoped portal session so the confirmation page can retrieve its
+    # acknowledgement through the existing ownership-checked PDF route.
+    session["portal_mobile"] = mobile
     send_sms(mobile, "Sewa Setu: application %s received. Track at the status portal "
                      "with mobile no. and password (DOB as DDMMYYYY)." % app_no)
     return render_template("confirmation.html", app_no=app_no, app_id=new_id)
