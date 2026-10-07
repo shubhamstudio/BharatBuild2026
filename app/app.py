@@ -56,9 +56,12 @@ MIN_AGE = config.getint("pension", "min_age")
 SLA_DAYS = config.getint("pension", "sla_days")
 IST = ZoneInfo("Asia/Kolkata")
 EXPOSE_SMS_GATEWAY = os.environ.get("EXPOSE_SMS_GATEWAY", "true").lower() == "true"
-UNICODE_FONT_PATH = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
-ASSAMESE_FONT_PATH = "/usr/share/fonts/truetype/noto/NotoSansBengali-Regular.ttf"
-DEVANAGARI_FONT_PATH = "/usr/share/fonts/truetype/noto/NotoSansDevanagari-Regular.ttf"
+# Bundle acknowledgement fonts with the application. Vercel Functions do not
+# include the operating-system fonts available in the Docker image.
+FONT_DIR = os.path.join(BASE_DIR, "fonts")
+UNICODE_FONT_PATH = os.path.join(FONT_DIR, "DejaVuSans.ttf")
+ASSAMESE_FONT_PATH = os.path.join(FONT_DIR, "NotoSansBengali-Regular.ttf")
+DEVANAGARI_FONT_PATH = os.path.join(FONT_DIR, "NotoSansDevanagari-Regular.ttf")
 
 BLOCKS = ["Sonari", "Rajapara", "Dhemaji Pathar", "Borgaon", "Namti", "Khelua"]
 
