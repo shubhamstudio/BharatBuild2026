@@ -1,0 +1,12 @@
+.env
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Supplied production data and log archive are deliberately not versioned.
+seed/seed.sql
+logs/*.gz
+logs/*.log
+logs/README.txt
+logs/._*
+*.zip

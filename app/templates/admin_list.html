@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Applications &mdash; {{ status }}</h2>
+<p><a href="/admin/dashboard">&laquo; Dashboard</a></p>
+<form method="get" action="/admin/applications">
+  <label>Search by application number, mobile number, or name</label>
+  <input type="text" name="q" value="{{ query }}" maxlength="100" placeholder="Search applications">
+  <label>Status</label>
+  <select name="status">
+    {% for option in ['ALL', 'PENDING', 'APPROVED', 'REJECTED', 'DEEMED_APPROVED'] %}
+    <option value="{{ option }}" {% if status == option %}selected{% endif %}>{{ option.replace('_', ' ').title() }}</option>
+    {% endfor %}
+  </select>
+  <label>Block</label>
+  <select name="block"><option value="">All blocks</option>{% for option in blocks %}<option value="{{ option }}" {% if block == option %}selected{% endif %}>{{ option }}</option>{% endfor %}</select>
+  <p><button class="btn" type="submit">Apply filters</button></p>
+</form>
+<table class="tbl">
+<tr><th>ID</th><th>Application No</th><th>Name</th><th>Mobile</th><th>Block</th>
+<th>Status</th><th>Submitted</th><th></th></tr>
+{% for r in rows %}
+<tr>
+  <td>{{ r[0] }}</td><td>{{ r[1] }}</td><td>{{ r[2] }}</td><td>{{ r[3] }}</td>
+  <td>{{ r[4] }}</td><td>{{ r[5] }}</td><td>{{ r[6] }}</td>
+  <td><a href="/admin/application/{{ r[0] }}">View</a></td>
+</tr>
+{% endfor %}
+</table>
+<p>
+{% if page > 1 %}<a href="?status={{ status }}&q={{ query }}&block={{ block }}&page={{ page - 1 }}">&laquo; Previous</a>{% endif %}
+{% if has_next %}&nbsp;<a href="?status={{ status }}&q={{ query }}&block={{ block }}&page={{ page + 1 }}">Next &raquo;</a>{% endif %}
+</p>
+{% endblock %}

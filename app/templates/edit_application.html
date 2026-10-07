@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Correct Pending Application</h2>
+<p class="note">You may correct a pending application. Your earlier submission is retained in the audit record; no duplicate application will be created.</p>
+<form method="post">
+  <label>Full Name of Applicant</label>
+  <input type="text" name="applicant_name" value="{{ data.applicant_name }}" required>
+  <label>Date of Birth</label>
+  <input type="date" name="dob" value="{{ data.dob }}" required>
+  <label>Gender</label>
+  <select name="gender" required>{% for value in ['Male', 'Female', 'Other'] %}<option value="{{ value }}" {% if data.gender == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select>
+  <label>Marital Status</label>
+  <select name="marital_status" required>{% for value in ['Married', 'Unmarried', 'Widowed'] %}<option value="{{ value }}" {% if data.marital_status == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select>
+  <label>Spouse's Name (required if widowed)</label>
+  <input type="text" name="spouse_name" value="{{ data.spouse_name }}">
+  <label>Spouse's Current/Last Employer</label>
+  <input type="text" name="spouse_employer" value="{{ data.spouse_employer }}">
+  <label>Village / Town</label>
+  <input type="text" name="village" value="{{ data.village }}" required>
+  <label>Block</label>
+  <select name="block" required>{% for block in blocks %}<option value="{{ block }}" {% if data.block == block %}selected{% endif %}>{{ block }}</option>{% endfor %}</select>
+  <label>Bank Account Number</label>
+  <input type="text" name="bank_account" value="{{ data.bank_account }}" required>
+  <label>IFSC Code</label>
+  <input type="text" name="ifsc" value="{{ data.ifsc }}" required>
+  <p><button class="btn" type="submit">Save corrections</button></p>
+</form>
+{% endblock %}
