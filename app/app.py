@@ -21,6 +21,7 @@ from datetime import datetime, date, timedelta
 import requests
 import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
+from vercel.blob import BlobClient
 from flask import (Flask, request, session, redirect, url_for, render_template,
                    flash, send_file, abort, jsonify)
 from fpdf import FPDF
@@ -47,6 +48,8 @@ SMS_GATEWAY_URL = os.environ.get(
 ).rstrip("/")
 OTP_VALIDITY_SECONDS = config.getint("app", "otp_validity_seconds")
 UPLOAD_DIR = config.get("app", "upload_dir")
+BLOB_STORAGE_ENABLED = bool(os.environ.get("BLOB_READ_WRITE_TOKEN"))
+MAX_DOCUMENT_BYTES = 4 * 1024 * 1024
 SCHEME_DEADLINE = datetime.strptime(config.get("pension", "scheme_deadline"),
                                     "%Y-%m-%d %H:%M").replace(tzinfo=ZoneInfo("Asia/Kolkata"))
 MIN_AGE = config.getint("pension", "min_age")
@@ -122,6 +125,27 @@ def sanitize(value, maxlen=100):
         return ""
     value = value.strip()
     return value[:maxlen]
+
+
+def store_document(content, extension):
+    """Store citizen documents privately on Vercel, or locally for Docker development."""
+    filename = "%s%s" % (uuid.uuid4().hex, extension)
+    if BLOB_STORAGE_ENABLED:
+        content_type = "application/pdf" if extension == ".pdf" else "image/jpeg"
+        blob = BlobClient().put(
+            "applications/%s" % filename,
+            content,
+            access="private",
+            content_type=content_type,
+        )
+        # Keep an opaque pathname in Postgres rather than exposing a storage URL.
+        return blob.pathname
+
+    os.makedirs(UPLOAD_DIR, exist_ok=True)
+    path = os.path.join(UPLOAD_DIR, filename)
+    with open(path, "wb") as out:
+        out.write(content)
+    return path
 
 
 def hash_password(p):
@@ -311,14 +335,10 @@ def upload():
         if extension not in (".pdf", ".jpg", ".jpeg") or not (is_pdf or is_jpeg):
             flash("Upload a valid PDF or JPG age-proof document.")
             return render_template("upload.html")
-        if len(content) > 5 * 1024 * 1024:
-            flash("The document must be 5 MB or smaller.")
+        if len(content) > MAX_DOCUMENT_BYTES:
+            flash("The document must be 4 MB or smaller.")
             return render_template("upload.html")
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        path = os.path.join(UPLOAD_DIR, "%s%s" % (uuid.uuid4().hex, extension))
-        with open(path, "wb") as out:
-            out.write(content)
-        session["doc_path"] = path
+        session["doc_path"] = store_document(content, extension)
         return redirect(url_for("declaration"))
     return render_template("upload.html")
 
@@ -414,13 +434,6 @@ def handle_submission():
         cur.execute("INSERT INTO portal_users (mobile, password_hash) VALUES (%s,%s)",
                     (mobile, hash_password(portal_pass)))
     conn.commit()
-
-    app.logger.info("generating acknowledgment pdf application=%d" % new_id)
-    pdf_bytes = generate_acknowledgment(cur, new_id)
-    ack_dir = os.path.join(UPLOAD_DIR, "ack")
-    os.makedirs(ack_dir, exist_ok=True)
-    with open(os.path.join(ack_dir, "%d.pdf" % new_id), "wb") as out:
-        out.write(pdf_bytes)
 
     cur.close(); conn.close()
     session.pop("form_data", None)
@@ -586,12 +599,6 @@ def edit_application(app_id):
              bank_account, ifsc, app_id, mobile),
         )
         conn.commit()
-        # Replace the cached acknowledgement so it always reflects the correction.
-        pdf_bytes = generate_acknowledgment(cur, app_id)
-        ack_dir = os.path.join(UPLOAD_DIR, "ack")
-        os.makedirs(ack_dir, exist_ok=True)
-        with open(os.path.join(ack_dir, "%d.pdf" % app_id), "wb") as out:
-            out.write(pdf_bytes)
         cur.close(); conn.close()
         flash("Your pending application has been corrected. No new application was created.")
         return redirect(url_for("view_application", app_id=app_id))
